@@ -17,6 +17,13 @@ class GameView: MTKView {
     ///     3. Fragment function (made by MTL library in .metal file)
     var renderPipelineState: MTLRenderPipelineState!
 
+    let vertices: [float3] = [
+        float3(0, 1, 0),    // top middle
+        float3(-1, -1, 0),  // bottom left
+        float3(1, -1, 0)    // bottom right
+    ]
+    var vertexBuffer: MTLBuffer!
+
     required init(coder: NSCoder) {
         super.init(coder: coder)
         /// Abstract representation of GPU
@@ -34,6 +41,7 @@ class GameView: MTKView {
         commandQueue = device?.makeCommandQueue()
 
         createRenderPipelineState()
+        createVertexBuffers()
     }
 
     override func draw(_ dirtyRect: NSRect) {
@@ -51,14 +59,16 @@ class GameView: MTKView {
         let renderCommandEncoder = commandBuffer?.makeRenderCommandEncoder(descriptor: renderPassDescriptor)
         renderCommandEncoder?.setRenderPipelineState(renderPipelineState)
 
-        // TODO: Send info to renderCommandEncoder
+        // Send info to renderCommandEncoder
+        renderCommandEncoder?.setVertexBuffer(vertexBuffer, offset: 0, index: 0)
+        renderCommandEncoder?.drawPrimitives(type: .triangle, vertexStart: 0, vertexCount: vertices.count)
 
         renderCommandEncoder?.endEncoding()
         commandBuffer?.present(drawable)
         commandBuffer?.commit()
     }
 
-    func createRenderPipelineState() {
+    private func createRenderPipelineState() {
         let library = device?.makeDefaultLibrary()
         let vertexFunction = library?.makeFunction(name: "basic_vertex_shader")
         let fragmentFunction = library?.makeFunction(name: "basic_fragment_shader")
@@ -73,5 +83,11 @@ class GameView: MTKView {
         } catch let error as NSError {
             print("Failed to create render pipeline state: \(error)")
         }
+    }
+
+    private func createVertexBuffers() {
+        /// length: It is amount of memory that needs to be buffered out
+        ///     float3 is 16bytes, vertices.count is 3 = 16 times 3 is the memory buffered out here
+        vertexBuffer = device?.makeBuffer(bytes: vertices, length: MemoryLayout<float3>.stride * vertices.count, options: [])
     }
 }
