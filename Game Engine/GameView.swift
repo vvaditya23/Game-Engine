@@ -7,6 +7,11 @@
 
 import MetalKit
 
+struct Vertex {
+    var position: float3    // 2D positions
+    var color: float4   // RGBA colors
+}
+
 class GameView: MTKView {
     var commandQueue: MTLCommandQueue!
 
@@ -17,11 +22,7 @@ class GameView: MTKView {
     ///     3. Fragment function (made by MTL library in .metal file)
     var renderPipelineState: MTLRenderPipelineState!
 
-    let vertices: [float3] = [
-        float3(0, 1, 0),    // top middle
-        float3(-1, -1, 0),  // bottom left
-        float3(1, -1, 0)    // bottom right
-    ]
+    var vertices = [Vertex]()
     var vertexBuffer: MTLBuffer!
 
     required init(coder: NSCoder) {
@@ -41,6 +42,7 @@ class GameView: MTKView {
         commandQueue = device?.makeCommandQueue()
 
         createRenderPipelineState()
+        vertices = createVertices()
         createVertexBuffers()
     }
 
@@ -67,7 +69,9 @@ class GameView: MTKView {
         commandBuffer?.present(drawable)
         commandBuffer?.commit()
     }
+}
 
+extension GameView {
     private func createRenderPipelineState() {
         let library = device?.makeDefaultLibrary()
         let vertexFunction = library?.makeFunction(name: "basic_vertex_shader")
@@ -85,9 +89,17 @@ class GameView: MTKView {
         }
     }
 
+    private func createVertices() -> [Vertex] {
+        let vertices: [Vertex] = [
+            Vertex(position: float3(0, 1, 0), color: float4(1, 0, 0, 1)),
+            Vertex(position: float3(-1, -1, 0), color: float4(0, 1, 0, 1)),
+            Vertex(position: float3(1, -1, 0), color: float4(0, 0, 1, 1))
+        ]
+        return vertices
+    }
+
     private func createVertexBuffers() {
         /// length: It is amount of memory that needs to be buffered out
-        ///     float3 is 16bytes, vertices.count is 3 = 16 times 3 is the memory buffered out here
-        vertexBuffer = device?.makeBuffer(bytes: vertices, length: MemoryLayout<float3>.stride * vertices.count, options: [])
+        vertexBuffer = device?.makeBuffer(bytes: vertices, length: MemoryLayout<Vertex>.stride * vertices.count, options: [])
     }
 }
